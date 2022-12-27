@@ -1,0 +1,233 @@
+-- ORACLE OUTER JOIN
+SELECT *
+FROM EMP E, EMP M
+WHERE E.MGR = M.EMPNO(+);
+
+-- ANSI OUTER JOIN : 조인문이 왼쪽에 있는 테이블의 모든 결과를 가져온 후 
+-- 오른쪽 테이블 데이터를 매칭하고, 매칭되는 데이터가 없는 경우 NULL로 표시한다.
+SELECT *
+FROM EMP E LEFT OUTER JOIN EMP M
+ON E.MGR = M.EMPNO(+);
+
+-- 08장 서브쿼리
+-- 서브쿼리
+SELECT DNAME
+FROM DEPT
+WHERE DEPTNO = (SELECT DEPTNO
+                                        FROM EMP
+                                        WHERE ENAME = 'SCOTT');
+                                        
+SELECT DNAME
+FROM EMP, DEPT
+WHERE EMP.DEPTNO = DEPT.DEPTNO AND
+EMP.ENAME = 'SCOTT';
+
+-- 단일행 서브 쿼리
+SELECT ENAME, SAL
+FROM EMP
+WHERE SAL > (SELECT AVG(SAL) FROM EMP); -- SELECT AVG(SAL) FROM EMP : 단일행 -> 비교연산자 사용 가능
+
+-- 다중행 서브 쿼리 : IN, ANY, SOME, ALL, EXIST
+-- IN 연산자 : 서브쿼리의 결과중에서 하나라도 일치하면 참이다.
+SELECT ENAME, SAL, DEPTNO
+FROM EMP
+WHERE DEPTNO IN (SELECT DISTINCT DEPTNO -- 단일행처럼 비교연산자 사용 못해.
+        FROM EMP
+        WHERE SAL >= 3000); -- 여기 조건에서 참인 결과가 출력하는거
+
+-- ALL 연산자 : 메인 쿼리의 비교 조건이 서브 쿼리의 검색 결과와 모든 값이 일치하면 참이다.
+SELECT ENAME, SAL
+FROM EMP
+WHERE SAL > ALL(SELECT SAL
+        FROM EMP
+        WHERE DEPTNO = 30); --()안의 여러 조건중에 2850보다 높은 수를 출력해줌(모든걸 다 만족해주니까)
+        
+-- ANY 연산자 : 메인 쿼리의 비교 조건이 서브 쿼리의 검색 결과와 하나 이상만 일치하면 참이다.
+SELECT ENAME, SAL
+FROM EMP
+WHERE SAL > ANY(SELECT SAL -- ANY = OR 연산 SAL > 1600 OR SAL > 1250 OR... SAL>950
+        FROM EMP
+        WHERE DEPTNO = 30); -- 조건이 하나만 만족해도 다 출력해줘
+        
+SELECT ENAME, SAL
+FROM EMP
+WHERE SAL IN (SELECT SAL -- IN (= 연산)
+        FROM EMP
+        WHERE DEPTNO = 30);        
+        
+-- EXISTS 연산자 : 서브쿼리에 결과 값이 하나 이상 존재하면 메인 조건식이 모두 TRUE,
+-- 존재하지 않으면 모두 FALSE가 되는 연산자이다.
+SELECT *
+FROM EMP
+WHERE 1=1; 
+
+SELECT *
+FROM EMP
+WHERE EXISTS (SELECT DNAME
+            FROM DEPT
+            WHERE DEPTNO=10); -- ()안의 조건이 참 이면 출력되는거
+            
+-- 2. IN연산자를 이용하여 부서별로 가장 많은 급여를 받는 사원의 정보(사원번호,사원명,급여,부서번호)를 출력하는 SQL문을 작성 하세요?
+SELECT *
+FROM EMP;
+
+SELECT EMPNO 사원번호, ENAME 사원명, SAL 급여, DEPTNO 부서번호
+FROM EMP
+WHERE SAL IN (SELECT MAX(SAL)
+        FROM EMP
+        WHERE DEPTNO = 30
+        UNION
+        SELECT DISTINCT MAX(SAL)
+        FROM EMP
+        WHERE DEPTNO = 20
+        UNION
+        SELECT DISTINCT MAX(SAL)
+        FROM EMP
+        WHERE DEPTNO = 10); 
+ 
+SELECT EMPNO 사원번호, ENAME 사원명, SAL 급여, DEPTNO 부서번호
+FROM EMP
+WHERE SAL IN (SELECT MAX(SAL)
+        FROM EMP
+        GROUP BY DEPTNO);       
+
+SELECT EMPNO, ENAME, SAL, DEPTNO
+FROM EMP
+WHERE (DEPTNO, SAL) IN(
+SELECT DEPTNO, MAX(SAL) -- ~부서번호의 MAX, 이렇게 두개 조건 걸어주기
+FROM EMP
+GROUP BY DEPTNO -- 그룹별로 나누는 것
+);
+
+UPDATE EMP SET SAL = 2850
+WHERE ENAME = 'SMITH';
+
+-- 09장 DDL : CREATE, ALTER, RENAME, TRUNCATE, DROP 데이터베이스 설계시 사용
+-- DML : INSERT, UPDATE, DELETE, SELECT : 주로 사용
+-- CREATE문
+CREATE TABLE EX2_1(
+        COLUMN1 CHAR(10),
+        COLUMN2 VARCHAR2(10),
+        COLUMN3 VARCHAR2(10),
+        COULMN4 NUMBER
+);
+DESC EX2_1;
+-- 새롭게 테이블 생성하기
+CREATE TABLE EMP01 (
+        EMPNO NUMBER(4),
+        ENAME VARCHAR2(20),
+        SAL NUMBER(7,2)
+);
+DESC EMP01;
+SELECT * FROM EMP01;
+
+-- 서브 쿼리로 테이블 생성하기(복사느낌?)
+CREATE TABLE EMP02
+AS
+SELECT * FROM EMP; -- 이 구조 그래도 복사해서 생성
+DESC EMP02;
+
+-- 특정한 컬럼(열)으로 구성된 복제 테이블 생성하기
+CREATE TABLE EMP03
+AS
+SELECT EMPNO, ENAME FROM EMP; -- 특정 컬럼 복사
+SELECT * FROM EMP03;
+
+-- 원하는 행(ROW)으로 구성된 복제 테이블 생성하기
+CREATE TABLE EMP05
+AS
+SELECT * FROM EMP
+WHERE DEPTNO = 10;
+SELECT * FROM EMP05;
+
+-- 테이블 구조만 복사하기 (데이터는 없지만 구조만 가져옴)
+CREATE TABLE EMP06
+AS
+SELECT * FROM EMP
+WHERE 1=0; -- 이런거 없어(데이터는 넣어지지 않아)
+SELECT * FROM EMP06;
+
+-- ALTER TABLE
+-- ADD : 추가
+DESC EMP01;
+
+ALTER TABLE EMP01
+ADD(JOB VARCHAR2(9)); -- 추가 되지롱
+
+-- MODIFY : 속성 변경
+ALTER TABLE EMP01
+MODIFY(JOB VARCHAR2(30)); -- 9 -> 30으로 변경
+
+-- DELETE : 삭제
+ALTER TABLE EMP01
+DROP COLUMN JOB; -- -> 삭제
+
+-- SET UNUSESD
+SELECT * FROM EMP02;
+ALTER TABLE EMP02
+SET UNUSED(JOB);
+
+ALTER TABLE EMP02
+DROP UNUSED COLUMNS;
+
+-- DROP TABLE : 테이블 삭제
+DROP TABLE EMP01;
+SELECT * FROM EMP01;
+SELECT * FROM EMP02;
+DROP TABLE EMP02;
+
+SELECT * FROM EMP03; -- DML : DELETE -> 메모리에 있는걸 지움(디스크에 있는걸 지우는게 아냐)
+-- DML : INSERT, UPDATE, DELETE 즉 얘네 다 메모리에서만 노는거. 메모리에서 넣고, 업데이트하고, 삭제하고.. 디스크와는 별개 
+DELETE FROM EMP03; -- 지웠죵
+ROLLBACK; -- 다시 되돌리기 ㅋ 굿 -> 다시 디스크에 있는걸 메모리로 가져와
+
+TRUNCATE TABLE EMP03; -- DDL : TRUNCATE = DELETE + COMMIT -> 지웠던걸 디스크에 반영해(커밋)
+-- DDL : TRUNCATE, CREATE, ALTER, RENAME, DROP -> 기본적으로 COMMIT이 포함 되어 있다 생각하기
+-- 즉, 디스크와 관련있는거. 디스크에 반영되는거.
+-- DDL 쓸때는 조심하기!
+ROLLBACK; -- 소용 없죵.. -> 디스크에도 없으니까 가져올게 없는거지.
+
+-- 참고로 만약에 근무시 마음대로 삭제.. 같은거 하지말기.. 또 운영환경에서 SELECT 누르지 말기..
+
+-- RENAME TABLE : 테이블명 변경
+RENAME EMP03 TO TEST; -- EMP03 -> TEST로 이름 변경됨
+SELECT * FROM TEST;
+
+-- USER _데이터 딕셔너리
+SHOW USER;
+
+DESC USER_TABLES;
+
+SELECT TABLE_NAME 
+FROM USER_TABLES
+ORDER BY TABLE_NAME ASC; -- USER(SCOTT)가 만든 테이블 네임이 나와~
+
+-- 데이터 베이스는 사용자 중심으로 만들어져 -> 스키마
+
+-- ALL_데이터 딕셔너리
+SELECT * FROM DEPT;
+SELECT * FROM SYSTEM.HELP;
+-- 기본적으로 다른 계정의 테이블은 볼수 없음.(HELP빼고 -> 권한 허용 해준거)이 정보들은 ALL_딕셔너리에 들어있음 
+
+DESC ALL_TABLES;
+SELECT OWNER, TABLE_NAME FROM ALL_TABLES; -- SCOTT에서 접근 가능한 테이블 목록 출력
+
+SHOW USER;
+SELECT TABLE_NAME, OWNER FROM DBA_TABLES; -- SCOTT은 사용자 계정임으로 DBA 볼수 없어 (SYSTEM에서는 가능)
+
+-- DML : INSERT, UPDATE, DELETE
+-- INSERT문
+DESC DEPT01;
+ALTER TABLE DEPT01
+ADD(LOC VARCHAR2(10));
+
+INSERT INTO DEPT01 VALUES(10, 'ACCOUNTING', 'NEWYORK');
+SELECT * FROM DEPT01;
+INSERT INTO DEPT01 VALUES(30, 'DEVELOPMENT', NULL); -- 값은 안 넣을꺼면 비워두지 말고 NULL로 채우기
+INSERT INTO DEPT01 (DEPTNO, DNAME) VALUES (40, 'SALES'); -- 이렇게 넣은 값을 지정해서 넣어도 돼
+
+DROP TABLE DEPT01;
+CREATE TABLE DEPT01
+AS
+SELECT * FROM DEPT WHERE 1=0;
+SELECT * FROM DEPT01;
